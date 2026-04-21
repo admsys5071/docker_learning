@@ -1,34 +1,66 @@
 # .github/workflows/ci.yml
-name: CI Pipeline                    # Nom affiché dans l'onglet Actions de GitHub
+name: CI Pipeline
 
-on:                                  # Quand déclencher ?
+on:
   push:
-    branches: [main]                 # À chaque push sur main
+    branches: [main]
   pull_request:
-    branches: [main]                 # À chaque PR vers main
-  workflow_dispatch:                 # Bouton "Run workflow" manuel
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # Supprime le warning Node.js 20
 
 jobs:
-  hello:                             # Nom du job
-    runs-on: ubuntu-latest           # Machine : Ubuntu dernière version
+  build:
+    name: Build & Test Docker Images
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Hello GitHub Actions
-        run: echo "Le workflow a été déclenché par l'événement ${{ github.event_name }}"
-
-      - name: Infos sur le runner
-        run: |
-          echo "OS : $(uname -s)"
-          echo "Branche : ${{ github.ref_name }}"
-          echo "Commit : ${{ github.sha }}"
-          echo "Repo : ${{ github.repository }}"
-
+      # 1. Récupérer le code
       - name: Checkout du code
-        uses: actions/checkout@v4    # Action officielle : clone ton repo
+        uses: actions/checkout@v4
 
-      - name: Lister les fichiers du projet
+      # 2. Vérifier que Docker est disponible sur le runner
+      - name: Vérifier Docker
         run: |
-          echo "=== Racine du projet ==="
-          ls -la
+          docker --version
+          docker compose version
+
+      # 3. Builder les images avec docker compose
+      - name: Build des images Docker
+        run: docker compose build
+
+      # 4. Démarrer les conteneurs
+      - name: Démarrer les conteneurs
+        run: docker compose up -d
+
+      # 5. Attendre que les services soient prêts
+      - name: Attendre le démarrage des services
+        run: |
+          echo "Attente de 15 secondes pour le démarrage..."
+          sleep 15
+
+      # 6. Vérifier que les services répondent
+      - name: Tests de santé (Health Checks)
+        run: |
+          echo "=== Test API ==="
+          curl -f http://localhost:8080 || exit 1
           echo ""
-          echo "=== Docker Compose ==="
-          cat docker-compose.yml | head -30
+          echo "=== Test Grafana ==="
+          curl -f http://localhost:3001/api/health || exit 1
+          echo ""
+          echo "=== Test Prometheus ==="
+          curl -f http://localhost:9090/-/healthy || exit 1
+          echo ""
+          echo "Tous les services sont opérationnels !"
+
+      # 7. Afficher les logs en cas de problème
+      - name: Logs des conteneurs (debug)
+        if: failure()
+        run: docker compose logs
+
+      # 8. Nettoyer
+      - name: Arrêter les conteneurs
+        if: always()
+        run: docker compose down -v
