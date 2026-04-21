@@ -1,0 +1,34 @@
+# .github/workflows/ci.yml
+name: CI Pipeline                    # Nom affiché dans l'onglet Actions de GitHub
+
+on:                                  # Quand déclencher ?
+  push:
+    branches: [main]                 # À chaque push sur main
+  pull_request:
+    branches: [main]                 # À chaque PR vers main
+  workflow_dispatch:                 # Bouton "Run workflow" manuel
+
+jobs:
+  hello:                             # Nom du job
+    runs-on: ubuntu-latest           # Machine : Ubuntu dernière version
+    steps:
+      - name: Hello GitHub Actions
+        run: echo "Le workflow a été déclenché par l'événement ${{ github.event_name }}"
+
+      - name: Infos sur le runner
+        run: |
+          echo "OS : $(uname -s)"
+          echo "Branche : ${{ github.ref_name }}"
+          echo "Commit : ${{ github.sha }}"
+          echo "Repo : ${{ github.repository }}"
+
+      - name: Checkout du code
+        uses: actions/checkout@v4    # Action officielle : clone ton repo
+
+      - name: Lister les fichiers du projet
+        run: |
+          echo "=== Racine du projet ==="
+          ls -la
+          echo ""
+          echo "=== Docker Compose ==="
+          cat docker-compose.yml | head -30
