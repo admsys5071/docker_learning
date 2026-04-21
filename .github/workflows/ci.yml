@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI Pipeline
 
 on:
@@ -8,40 +7,38 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # Supprime le warning Node.js 20
-
 jobs:
   build:
     name: Build & Test Docker Images
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Récupérer le code
       - name: Checkout du code
         uses: actions/checkout@v4
 
-      # 2. Vérifier que Docker est disponible sur le runner
+      - name: Créer les fichiers de secrets
+        run: |
+          mkdir -p secrets
+          echo "${{ secrets.POSTGRES_USER }}" > secrets/postgres_user
+          echo "${{ secrets.POSTGRES_PASSWORD }}" > secrets/postgres_password
+          echo "${{ secrets.POSTGRES_DB }}" > secrets/postgres_db
+
       - name: Vérifier Docker
         run: |
           docker --version
           docker compose version
 
-      # 3. Builder les images avec docker compose
       - name: Build des images Docker
         run: docker compose build
 
-      # 4. Démarrer les conteneurs
       - name: Démarrer les conteneurs
         run: docker compose up -d
 
-      # 5. Attendre que les services soient prêts
       - name: Attendre le démarrage des services
         run: |
           echo "Attente de 15 secondes pour le démarrage..."
           sleep 15
 
-      # 6. Vérifier que les services répondent
       - name: Tests de santé (Health Checks)
         run: |
           echo "=== Test API ==="
@@ -55,12 +52,10 @@ jobs:
           echo ""
           echo "Tous les services sont opérationnels !"
 
-      # 7. Afficher les logs en cas de problème
       - name: Logs des conteneurs (debug)
         if: failure()
         run: docker compose logs
 
-      # 8. Nettoyer
       - name: Arrêter les conteneurs
         if: always()
         run: docker compose down -v
