@@ -28,12 +28,12 @@ Application full-stack conteneurisée mettant en pratique les bonnes pratiques D
 
 ## Fonctionnalités
 
-- Répartition de charge — Nginx distribue le trafic sur 2 instances de l'API
-- Health Checks — Tous les services incluent des vérifications de santé avec ordre de dépendance
-- Monitoring — Métriques Prometheus, tableaux de bord Grafana, métriques conteneurs via cAdvisor
-- Sécurité — Conteneurs non-root, isolation réseau, secrets via variables d'environnement
-- Arrêt gracieux — L'API gère proprement SIGTERM/SIGINT
-- Build multi-étapes — Image Docker optimisée (~150 Mo au lieu de ~1 Go)
+- **Répartition de charge** — Nginx distribue le trafic sur 2 instances de l'API
+- **Health Checks** — Tous les services incluent des vérifications de santé avec ordre de dépendance
+- **Monitoring** — Métriques Prometheus, tableaux de bord Grafana, métriques conteneurs via cAdvisor
+- **Sécurité** — Conteneurs non-root, isolation réseau, secrets via variables d'environnement
+- **Arrêt gracieux** — L'API gère proprement SIGTERM/SIGINT
+- **Build multi-étapes** — Image Docker optimisée (~150 Mo au lieu de ~1 Go)
 
 ## Démarrage rapide
 
@@ -64,11 +64,11 @@ docker compose ps
 
 ## Stack technique
 
-- API : Node.js 18, Express, pg, prom-client
-- Base de données : PostgreSQL 17
-- Load Balancer : Nginx
-- Monitoring : Prometheus, Grafana 10.4, cAdvisor
-- Conteneurisation : Docker, Docker Compose
+- **API** : Node.js 18, Express, pg, prom-client
+- **Base de données** : PostgreSQL 17
+- **Load Balancer** : Nginx
+- **Monitoring** : Prometheus, Grafana 10.4, cAdvisor
+- **Conteneurisation** : Docker, Docker Compose
 
 ## Structure du projet
 
@@ -88,8 +88,19 @@ docker compose ps
 ├── .gitignore
 ├── README.md               # 🇫🇷 Ce fichier
 ├── README.en.md            # 🇬🇧 Version anglaise
-└── TROUBLESHOOTING.md      # 🔧 Erreurs rencontrées et solutions
+├── TROUBLESHOOTING.md      # 🔧 Erreurs rencontrées et solutions
+├── DEPLOY-AWS.md           # ☁️ Guide de déploiement sur AWS
+└── DEPLOY-AZURE.md         # ☁️ Guide de déploiement sur Azure
 
+
+## Déploiement Cloud
+
+Ce projet a été déployé avec succès sur deux cloud providers :
+
+- **AWS EC2** (instance `t3.small`, Ubuntu 24.04) → [Guide AWS](DEPLOY-AWS.md)
+- **Azure VM** (instance `D2als_v7`, Ubuntu 24.04) → [Guide Azure](DEPLOY-AZURE.md)
+
+Les deux guides incluent une comparaison détaillée AWS vs Azure.
 
 ## Troubleshooting
 
@@ -97,16 +108,16 @@ Tu rencontres un problème ? Consulte le [guide de dépannage](TROUBLESHOOTING.m
 
 ## Bonnes pratiques Docker appliquées
 
-1. Images Alpine pour une empreinte réduite
-2. Build multi-étapes pour exclure les outils de build en production
-3. Utilisateur non-root dans les conteneurs
-4. `.dockerignore` pour garder les images propres
-5. `npm ci` pour des installations de dépendances reproductibles
-6. Health checks avec `start_period` pour tolérer le temps de démarrage
-7. Politique de redémarrage `unless-stopped` (respecte les arrêts manuels)
-8. Volumes montés en lecture seule (`:ro`) quand c'est possible
-9. Isolation réseau (backend / monitoring)
-10. Aucun secret en dur — tout passe par `.env`
+1. **Images Alpine** pour une empreinte réduite
+2. **Build multi-étapes** pour exclure les outils de build en production
+3. **Utilisateur non-root** dans les conteneurs
+4. **`.dockerignore`** pour garder les images propres
+5. **`npm ci`** pour des installations de dépendances reproductibles
+6. **Health checks** avec `start_period` pour tolérer le temps de démarrage
+7. **Politique de redémarrage `unless-stopped`** (respecte les arrêts manuels)
+8. **Volumes montés en lecture seule** (`:ro`) quand c'est possible
+9. **Isolation réseau** (backend / monitoring)
+10. **Aucun secret en dur** — tout passe par `.env`
 
 ## Commandes utiles
 

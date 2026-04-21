@@ -1,8 +1,21 @@
 require("dotenv").config();
 
+const fs = require("fs");
 const express = require("express");
 const { Pool } = require("pg");
 const client = require("prom-client");
+
+// Helper: read secret from file or fall back to env variable
+const readSecret = (filePath, envVar) => {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, "utf8").trim();
+    }
+  } catch (err) {
+    console.warn(`Could not read secret file ${filePath}:`, err.message);
+  }
+  return envVar;
+};
 
 // Collect default Node.js metrics (CPU, memory, event loop, etc.)
 client.collectDefaultMetrics();
@@ -12,9 +25,9 @@ const PORT = process.env.PORT || 3000;
 
 const pool = new Pool({
   host: process.env.DB_HOST,
-  user: process.env.POSTGRES_USER,
-  password: process.env.POSTGRES_PASSWORD,
-  database: process.env.POSTGRES_DB,
+  user: readSecret(process.env.POSTGRES_USER_FILE, process.env.POSTGRES_USER),
+  password: readSecret(process.env.POSTGRES_PASSWORD_FILE, process.env.POSTGRES_PASSWORD),
+  database: readSecret(process.env.POSTGRES_DB_FILE, process.env.POSTGRES_DB),
   port: 5432,
 });
 
