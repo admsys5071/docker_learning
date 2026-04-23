@@ -103,7 +103,7 @@ jobs:
       - name: Préparer la clé SSH AWS
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.AWS_SSH_KEY }}" > ~/.ssh/aws_key
+          echo "${{ secrets.AWS_SSH_KEY }}" | base64 -d > ~/.ssh/aws_key
           chmod 600 ~/.ssh/aws_key
 
       - name: Déployer sur AWS
