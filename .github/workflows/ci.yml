@@ -109,26 +109,19 @@ jobs:
       - name: Déployer sur AWS
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/aws_key ubuntu@${{ secrets.AWS_HOST }} << 'EOF'
-            # Créer le dossier du projet
-            mkdir -p ~/app/secrets
-
-            # Cloner ou mettre à jour le code
-            if [ -d ~/app/.git ]; then
-              cd ~/app && git pull origin main
-            else
-              git clone https://github.com/${{ github.repository }}.git ~/app
-              cd ~/app
-            fi
+            # Nettoyer et cloner le repo
+            rm -rf ~/app
+            git clone https://github.com/${{ github.repository }}.git ~/app
+            cd ~/app
 
             # Créer les fichiers de secrets
-            echo "${{ secrets.POSTGRES_USER }}" > ~/app/secrets/postgres_user
-            echo "${{ secrets.POSTGRES_PASSWORD }}" > ~/app/secrets/postgres_password
-            echo "${{ secrets.POSTGRES_DB }}" > ~/app/secrets/postgres_db
+            mkdir -p secrets
+            echo "${{ secrets.POSTGRES_USER }}" > secrets/postgres_user
+            echo "${{ secrets.POSTGRES_PASSWORD }}" > secrets/postgres_password
+            echo "${{ secrets.POSTGRES_DB }}" > secrets/postgres_db
 
-            # Pull les nouvelles images et redémarrer
-            cd ~/app
-            docker compose pull
-            docker compose up -d --force-recreate
+            # Démarrer les conteneurs
+            docker compose up -d --force-recreate --build
             echo "=== Déploiement AWS terminé ==="
             docker compose ps
           EOF
@@ -136,32 +129,22 @@ jobs:
       # --- Déploiement Azure ---
       - name: Préparer la clé SSH Azure
         run: |
-          echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
+          echo "${{ secrets.AZURE_SSH_KEY }}" | base64 -d > ~/.ssh/azure_key
           chmod 600 ~/.ssh/azure_key
 
       - name: Déployer sur Azure
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key azureuser@${{ secrets.AZURE_HOST }} << 'EOF'
-            # Créer le dossier du projet
-            mkdir -p ~/app/secrets
-
-            # Cloner ou mettre à jour le code
-            if [ -d ~/app/.git ]; then
-              cd ~/app && git pull origin main
-            else
-              git clone https://github.com/${{ github.repository }}.git ~/app
-              cd ~/app
-            fi
-
-            # Créer les fichiers de secrets
-            echo "${{ secrets.POSTGRES_USER }}" > ~/app/secrets/postgres_user
-            echo "${{ secrets.POSTGRES_PASSWORD }}" > ~/app/secrets/postgres_password
-            echo "${{ secrets.POSTGRES_DB }}" > ~/app/secrets/postgres_db
-
-            # Pull les nouvelles images et redémarrer
+            rm -rf ~/app
+            git clone https://github.com/${{ github.repository }}.git ~/app
             cd ~/app
-            docker compose pull
-            docker compose up -d --force-recreate
+
+            mkdir -p secrets
+            echo "${{ secrets.POSTGRES_USER }}" > secrets/postgres_user
+            echo "${{ secrets.POSTGRES_PASSWORD }}" > secrets/postgres_password
+            echo "${{ secrets.POSTGRES_DB }}" > secrets/postgres_db
+
+            docker compose up -d --force-recreate --build
             echo "=== Déploiement Azure terminé ==="
             docker compose ps
           EOF
