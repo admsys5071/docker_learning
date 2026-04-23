@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,8 +8,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build & Test Docker Images
+  # ============================================
+  # JOB 1 : Build, démarrage et tests
+  # ============================================
+  build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -23,11 +26,6 @@ jobs:
           echo "${{ secrets.POSTGRES_PASSWORD }}" > secrets/postgres_password
           echo "${{ secrets.POSTGRES_DB }}" > secrets/postgres_db
 
-      - name: Vérifier Docker
-        run: |
-          docker --version
-          docker compose version
-
       - name: Build des images Docker
         run: docker compose build
 
@@ -35,11 +33,9 @@ jobs:
         run: docker compose up -d
 
       - name: Attendre le démarrage des services
-        run: |
-          echo "Attente de 15 secondes pour le démarrage..."
-          sleep 15
+        run: sleep 15
 
-      - name: Tests de santé (Health Checks)
+      - name: Tests de santé
         run: |
           echo "=== Test API ==="
           curl -f http://localhost:8080 || exit 1
@@ -59,3 +55,33 @@ jobs:
       - name: Arrêter les conteneurs
         if: always()
         run: docker compose down -v
+
+  # ============================================
+  # JOB 2 : Push vers Docker Hub
+  # ============================================
+  push-to-dockerhub:
+    name: Push to Docker Hub
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build et tag de l'image API
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/docker-learning-api:latest \
+                        -t ${{ secrets.DOCKERHUB_USERNAME }}/docker-learning-api:${{ github.sha }} \
+                        ./api
+
+      - name: Push de l'image API
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/docker-learning-api:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/docker-learning-api:${{ github.sha }}
