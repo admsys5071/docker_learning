@@ -85,3 +85,83 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/docker-learning-api:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/docker-learning-api:${{ github.sha }}
+
+  # ============================================
+  # JOB 3 : Déploiement sur AWS et Azure
+  # ============================================
+  deploy:
+    name: Deploy to Cloud
+    runs-on: ubuntu-latest
+    needs: push-to-dockerhub
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # --- Déploiement AWS ---
+      - name: Préparer la clé SSH AWS
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AWS_SSH_KEY }}" > ~/.ssh/aws_key
+          chmod 600 ~/.ssh/aws_key
+
+      - name: Déployer sur AWS
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/aws_key ubuntu@${{ secrets.AWS_HOST }} << 'EOF'
+            # Créer le dossier du projet
+            mkdir -p ~/app/secrets
+
+            # Cloner ou mettre à jour le code
+            if [ -d ~/app/.git ]; then
+              cd ~/app && git pull origin main
+            else
+              git clone https://github.com/${{ github.repository }}.git ~/app
+              cd ~/app
+            fi
+
+            # Créer les fichiers de secrets
+            echo "${{ secrets.POSTGRES_USER }}" > ~/app/secrets/postgres_user
+            echo "${{ secrets.POSTGRES_PASSWORD }}" > ~/app/secrets/postgres_password
+            echo "${{ secrets.POSTGRES_DB }}" > ~/app/secrets/postgres_db
+
+            # Pull les nouvelles images et redémarrer
+            cd ~/app
+            docker compose pull
+            docker compose up -d --force-recreate
+            echo "=== Déploiement AWS terminé ==="
+            docker compose ps
+          EOF
+
+      # --- Déploiement Azure ---
+      - name: Préparer la clé SSH Azure
+        run: |
+          echo "${{ secrets.AZURE_SSH_KEY }}" > ~/.ssh/azure_key
+          chmod 600 ~/.ssh/azure_key
+
+      - name: Déployer sur Azure
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/azure_key azureuser@${{ secrets.AZURE_HOST }} << 'EOF'
+            # Créer le dossier du projet
+            mkdir -p ~/app/secrets
+
+            # Cloner ou mettre à jour le code
+            if [ -d ~/app/.git ]; then
+              cd ~/app && git pull origin main
+            else
+              git clone https://github.com/${{ github.repository }}.git ~/app
+              cd ~/app
+            fi
+
+            # Créer les fichiers de secrets
+            echo "${{ secrets.POSTGRES_USER }}" > ~/app/secrets/postgres_user
+            echo "${{ secrets.POSTGRES_PASSWORD }}" > ~/app/secrets/postgres_password
+            echo "${{ secrets.POSTGRES_DB }}" > ~/app/secrets/postgres_db
+
+            # Pull les nouvelles images et redémarrer
+            cd ~/app
+            docker compose pull
+            docker compose up -d --force-recreate
+            echo "=== Déploiement Azure terminé ==="
+            docker compose ps
+          EOF
